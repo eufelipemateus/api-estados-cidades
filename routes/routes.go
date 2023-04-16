@@ -1,17 +1,15 @@
 package routes
 
 import (
-	"net/http"
-
 	"github.com/eufelipemateus/api-estados-cidades/controllers"
-	"github.com/gorilla/mux"
+	"github.com/gin-gonic/gin"
 )
 
-func Setup(app *mux.Router) {
+func Setup(app *gin.Engine) {
 
-	router := app.PathPrefix("/api").Subrouter()
+	router := app.Group("/api")
 
-	router.HandleFunc("/estados", controllers.GetEstadosList).Methods(http.MethodGet)
-	router.HandleFunc("/cidades/{sigla}", controllers.GetCidadeList).Methods(http.MethodGet)
+	router.GET("/estados", controllers.GetEstadosList)
+	router.GET("/cidades/:sigla", controllers.GetCidadeList)
 
 }

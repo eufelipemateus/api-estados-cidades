@@ -1,20 +1,12 @@
 package main
 
 import (
-	"fmt"
-	"net/http"
-
 	"github.com/eufelipemateus/api-estados-cidades/routes"
-	"github.com/gorilla/mux"
-
+	"github.com/gin-gonic/gin"
 )
 
 func main() {
-
-	r := mux.NewRouter()
+	r := gin.Default()
 	routes.Setup(r)
-
-	r.Use(mux.CORSMethodMiddleware(r))
-
-	fmt.Println(http.ListenAndServe(":8080", r))
+	r.Run(":8080")
 }

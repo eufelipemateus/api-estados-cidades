@@ -1,23 +1,22 @@
 package controllers
 
 import (
-	"encoding/json"
 	"net/http"
 	"strings"
 
 	"github.com/eufelipemateus/api-estados-cidades/file"
+	"github.com/gin-gonic/gin"
 
 	"github.com/eufelipemateus/api-estados-cidades/interfaces"
-	"github.com/gorilla/mux"
 )
 
-func GetCidadeList(w http.ResponseWriter, r *http.Request) {
+func GetCidadeList(c *gin.Context) {
 	var cidade []interfaces.Cidade
 	var filtered []interfaces.Cidade
 
 	data := file.ReadJson("./data/cidades.new.json", cidade)
 
-	sigla := mux.Vars(r)["sigla"]
+	sigla := c.Param("sigla")
 	sigla = strings.ToUpper(sigla)
 
 	for _, val := range data {
@@ -25,8 +24,6 @@ func GetCidadeList(w http.ResponseWriter, r *http.Request) {
 			filtered = append(filtered, val)
 		}
 	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(filtered)
+	c.JSON(http.StatusOK, filtered)
 
 }
