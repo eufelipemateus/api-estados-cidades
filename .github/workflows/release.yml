@@ -1,0 +1,81 @@
+
+name: Release Backend 
+
+on:
+  push:
+    branches:
+      - 'master'
+
+jobs:
+  build-releases:
+    name: Release Go Binary
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        goos: [linux]
+        goarch: [amd64]
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.18'
+
+      - name:  Genereate  config.toml
+        run: mv config.example.toml config.toml  
+
+
+      - name: Add API - API PORT
+        uses: ciiiii/toml-editor@1.0.0
+        with:
+          file: "config.toml"
+          key: "api.port"
+          value: ${{secrets.API_PORT}} 
+
+      - name: Build
+        run: GOOS=linux GOARCH=amd64 CGO_ENABLED=0 && go build -tags=release -ldflags "-s -w"
+
+      - name:  Release Artifact - Web
+        uses: actions/upload-artifact@v3
+        with:
+          name: api-app-release
+          path: |
+            ${{ github.event.repository.name }}
+            ${{ github.event.repository.name }}.sh
+            config.toml
+            
+
+
+
+
+  deploy:
+    name: Deploy to Server
+    needs: build-releases
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dowload Artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: api-app-release
+
+      - name: Write SSH keys
+        run: |
+              install -m 600 -D /dev/null ~/.ssh/id_rsa
+              echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+              ssh-keyscan -H ${{secrets.SSH_HOST}} > ~/.ssh/known_hosts
+
+
+      - name: Deploy with rsync
+        run: rsync -rav --delete ./ ${{secrets.SSH_USER}}@${{secrets.SSH_HOST}}:${{secrets.WORK_DIR}}
+    
+      - name: Restart Apps
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            chmod 700 -R ${{secrets.WORK_DIR}}
+            chown web:web -R ${{secrets.WORK_DIR}}
+            sudo systemctl restart  ${{ github.event.repository.name }}.service 
